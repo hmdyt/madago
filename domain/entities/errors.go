@@ -16,3 +16,12 @@ func (e InvalidHeaderError) Error() string {
 	}
 	return fmt.Sprintf("invalid header error got=[%s]", strings.Join(byteStrings, ", "))
 }
+
+type InvalidFlushAdcHeaderError struct {
+	Got      uint16
+	Expected byte
+}
+
+func (e InvalidFlushAdcHeaderError) Error() string {
+	return fmt.Sprintf("invalid flush adc header error got=%d, expected=%d", e.Got, e.Expected)
+}

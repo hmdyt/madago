@@ -1,5 +1,7 @@
 package entities
 
+import "github.com/hmdyt/madago/domain/entconst"
+
 type Event struct {
 	Header EventHeader
 }
@@ -14,7 +16,7 @@ type EventHeader struct {
 
 type EventCounter uint32
 type ClockCounter uint32
-type EventFlushAdc [4][64]uint16
+type EventFlushAdc [4][entconst.Clock]uint16
 type Version struct {
 	Year  uint8
 	Month uint8
