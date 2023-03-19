@@ -11,12 +11,14 @@ import (
 	"github.com/hmdyt/madago/domain/entities"
 )
 
-func TestDecodeEvent(t *testing.T) {
+func TestDecodeEvents(t *testing.T) {
 	tests := []struct {
+		name      string
 		inputs    [][]byte
 		wantEvent []*entities.Event
 	}{
 		{
+			name: "成功; FlushADCあり, hit3clock",
 			inputs: [][]byte{
 				{
 					0xeb, 0x90, 0x19, 0x64, // header
@@ -129,15 +131,16 @@ func TestDecodeEvent(t *testing.T) {
 
 		events, err := d.Decode()
 		if err != nil {
-			t.Fatalf("test%d failed DecodeEvent: %s", i, err.Error())
+			t.Fatalf("fail %s: test%d failed DecodeEvent: %s", tt.name, i, err.Error())
 		}
 
 		if diff := cmp.Diff(events[0].Header.FlushADC, tt.wantEvent[0].Header.FlushADC); diff != "" {
-			t.Fatalf("return Event is mismatch :\n%s", diff)
+			t.Fatalf("fail %s:return Event is mismatch :\n%s", tt.name, diff)
 		}
 
 		if diff := cmp.Diff(events, tt.wantEvent); diff != "" {
-			t.Fatalf("return Event is mismatch :\n%s", diff)
+			t.Fatalf("fail %s:return Event is mismatch :\n%s", tt.name, diff)
 		}
+		t.Logf("pass: %s", tt.name)
 	}
 }
