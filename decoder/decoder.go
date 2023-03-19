@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 
 	"github.com/hmdyt/madago/domain/entconst"
 	"github.com/hmdyt/madago/domain/entities"
@@ -30,12 +32,33 @@ func NewDecoder(reader *bufio.Reader, endian binary.ByteOrder) *Decoder {
 
 // Decode entrypoint
 func (d *Decoder) Decode() ([]*entities.Event, error) {
-	if err := d.DecodeEvent(); err != nil {
-		return []*entities.Event{}, err
+	// headerまで読み飛ばす
+	for i := 0; ; i++ {
+		b, err := d.reader.Peek(4)
+		if err != nil {
+			return []*entities.Event{}, err
+		}
+
+		if entconst.IsEventHeaderSymbol(b) {
+			break
+		} else {
+			if _, err := d.reader.Discard(1); err != nil {
+				return []*entities.Event{}, err
+			}
+		}
 	}
 
-	d.events = append(d.events, d.currentEvent)
-	d.clearCurrentEvent()
+	// event read loop
+	for {
+		if err := d.DecodeEvent(); err == nil {
+			d.events = append(d.events, d.currentEvent)
+			d.clearCurrentEvent()
+		} else if errors.Is(err, io.ErrUnexpectedEOF) {
+			break
+		} else {
+			log.Fatalf("event read loop end: %#v \n", err)
+		}
+	}
 
 	return d.events, nil
 }
@@ -50,6 +73,10 @@ func (d *Decoder) DecodeEvent() error {
 	}
 
 	if err := d.ReadClockCounter(); err != nil {
+		return err
+	}
+
+	if err := d.ReadInputCh2Counter(); err != nil {
 		return err
 	}
 
@@ -91,7 +118,7 @@ func (d *Decoder) SkipEventHeaderSymbol() error {
 	if err := binary.Read(d.reader, d.endian, &b); err != nil {
 		return err
 	}
-	if !entconst.IsEventHeaderSymbol(b) {
+	if !entconst.IsEventHeaderSymbol(b[:]) {
 		return entities.InvalidHeaderError{Got: b[:]}
 	}
 
@@ -108,6 +135,14 @@ func (d *Decoder) ReadEventCounter() error {
 
 func (d *Decoder) ReadClockCounter() error {
 	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Clock); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Decoder) ReadInputCh2Counter() error {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.InputCh2); err != nil {
 		return err
 	}
 

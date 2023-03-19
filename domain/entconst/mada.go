@@ -22,7 +22,7 @@ const HitHeaderSymbol = uint8(8)
 
 // helper methods
 
-func IsEventHeaderSymbol(b [4]byte) bool {
+func IsEventHeaderSymbol(b []byte) bool {
 	expected := EventHeaderSymbol()
 	if b[0] == expected[0] && b[1] == expected[1] && b[2] == expected[2] && b[3] == expected[3] {
 		return true
