@@ -1,27 +1,29 @@
 package decoder
 
 import (
+	"bufio"
 	"encoding/binary"
-	"io"
+	"errors"
+	"fmt"
 
 	"github.com/hmdyt/madago/domain/entconst"
 	"github.com/hmdyt/madago/domain/entities"
 )
 
 type Decoder struct {
-	reader       io.Reader
+	reader       *bufio.Reader
 	endian       binary.ByteOrder
 	flushAdcBuf  []uint16
 	currentEvent *entities.Event
 	events       []*entities.Event
 }
 
-func NewDecoder(reader io.Reader, endian binary.ByteOrder) *Decoder {
+func NewDecoder(reader *bufio.Reader, endian binary.ByteOrder) *Decoder {
 	return &Decoder{
 		reader:       reader,
 		endian:       endian,
 		flushAdcBuf:  make([]uint16, 4*entconst.Clock),
-		currentEvent: &entities.Event{},
+		currentEvent: &entities.Event{Hits: make([]entities.Hit, 0, entconst.Clock)},
 		events:       make([]*entities.Event, 0, 1000),
 	}
 }
@@ -33,6 +35,7 @@ func (d *Decoder) Decode() ([]*entities.Event, error) {
 	}
 
 	d.events = append(d.events, d.currentEvent)
+	d.clearCurrentEvent()
 
 	return d.events, nil
 }
@@ -58,7 +61,29 @@ func (d *Decoder) DecodeEvent() error {
 		return err
 	}
 
-	return nil
+	// footer ("uPIC") に当たるまでhitを読み続ける
+	for {
+		peekBytes, err := d.reader.Peek(4)
+		if err != nil {
+			return err
+		}
+		switch {
+		case entconst.IsHitHeaderSymbol(peekBytes[0] >> 4):
+			if _, err := d.reader.Discard(2); err != nil {
+				return err
+			}
+			if err := d.ReadHit(); err != nil {
+				return err
+			}
+		case entconst.IsEventFooterSymbol(peekBytes):
+			if _, err := d.reader.Discard(4); err != nil {
+				return err
+			}
+			return nil
+		default:
+			return entities.InvalidHeaderError{Got: peekBytes}
+		}
+	}
 }
 
 func (d *Decoder) SkipEventHeaderSymbol() error {
@@ -66,8 +91,8 @@ func (d *Decoder) SkipEventHeaderSymbol() error {
 	if err := binary.Read(d.reader, d.endian, &b); err != nil {
 		return err
 	}
-	if !entconst.IsValidHeaderSymbol(b) {
-		return entities.InvalidHeaderError{Got: b}
+	if !entconst.IsEventHeaderSymbol(b) {
+		return entities.InvalidHeaderError{Got: b[:]}
 	}
 
 	return nil
@@ -101,7 +126,7 @@ func (d *Decoder) ReadFlushAdc() error {
 		for ch := 0; ch < 4; ch++ {
 			header := flushADC4ChBuff[ch] >> 12                  // 上位4bit
 			adcValue := flushADC4ChBuff[ch] & 0b0000001111111111 // 下位10bit
-			if !entconst.IsValidAdcHeaderSymbol(ch, header) {
+			if !entconst.IsAdcHeaderSymbol(ch, header) {
 				return entities.InvalidFlushAdcHeaderError{
 					Got:      header,
 					Expected: entconst.FlushAdcHeaderSymbol()[ch],
@@ -130,4 +155,57 @@ func (d *Decoder) ReadVersionAndDepth() error {
 	d.currentEvent.Header.EncodingClockDepth = entities.EncodingClockDepth(buf & 0b0000011111111111) // 下位11bit
 
 	return nil
+}
+
+func (d *Decoder) ReadHit() error {
+	var hit entities.Hit
+
+	// clock
+	if err := binary.Read(d.reader, d.endian, &hit.Clock); err != nil {
+		return err
+	}
+
+	// hit: 64bitずつよむ
+	var buf uint64
+
+	// 127 - 64 ch
+	if err := binary.Read(d.reader, d.endian, &buf); err != nil {
+		return err
+	}
+	for i := 0; i < 64; i++ {
+		// 下から i bit 目をboolとして取り出す
+		isHitInt := (buf >> i) & 0b1
+		switch isHitInt {
+		case 0:
+			hit.IsHit[64+i] = false
+		case 1:
+			hit.IsHit[64+i] = true
+		default:
+			return errors.New(fmt.Sprintf("invalid IsHit, got=%d", isHitInt))
+		}
+	}
+
+	// 63 - 0 ch
+	if err := binary.Read(d.reader, d.endian, &buf); err != nil {
+		return err
+	}
+	for i := 0; i < 64; i++ {
+		// 下から i bit 目をboolとして取り出す
+		isHitInt := (buf >> i) & 0b1
+		switch isHitInt {
+		case 0:
+			hit.IsHit[i] = false
+		case 1:
+			hit.IsHit[i] = true
+		default:
+			return errors.New(fmt.Sprintf("invalid IsHit, got=%d", isHitInt))
+		}
+	}
+
+	d.currentEvent.Hits = append(d.currentEvent.Hits, hit)
+	return nil
+}
+
+func (d *Decoder) clearCurrentEvent() {
+	d.currentEvent = &entities.Event{Hits: make([]entities.Hit, 0, entconst.Clock)}
 }

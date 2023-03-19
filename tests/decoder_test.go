@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"testing"
@@ -43,6 +44,21 @@ func TestDecodeEvent(t *testing.T) {
 					ret = append(ret, versionYear, versionMonth, versionSub, encodingClockDepth)
 					return ret
 				}(),
+				// hit: 3 clock, all true
+				func() []byte {
+					ret := make([]byte, 0, 20*3)
+					for clock := 50; clock < 53; clock++ {
+						header := uint8(8 << 4)
+						ret = append(ret, header, 0)
+						ret = append(ret, uint8(clock>>8), uint8(clock&0xff))
+						// 128ch 全部 1
+						for i := 0; i < 16; i++ {
+							ret = append(ret, 0xff)
+						}
+					}
+					return ret
+				}(),
+				{0x75, 0x50, 0x49, 0x43}, // event footer
 			},
 			wantEvent: []*entities.Event{
 				{
@@ -65,6 +81,38 @@ func TestDecodeEvent(t *testing.T) {
 						},
 						EncodingClockDepth: entities.EncodingClockDepth(50),
 					},
+					Hits: []entities.Hit{
+						{
+							Clock: 50,
+							IsHit: func() [128]bool {
+								var ret [128]bool
+								for i := range ret {
+									ret[i] = true
+								}
+								return ret
+							}(),
+						},
+						{
+							Clock: 51,
+							IsHit: func() [128]bool {
+								var ret [128]bool
+								for i := range ret {
+									ret[i] = true
+								}
+								return ret
+							}(),
+						},
+						{
+							Clock: 52,
+							IsHit: func() [128]bool {
+								var ret [128]bool
+								for i := range ret {
+									ret[i] = true
+								}
+								return ret
+							}(),
+						},
+					},
 				},
 			},
 		},
@@ -72,10 +120,11 @@ func TestDecodeEvent(t *testing.T) {
 
 	for i, tt := range tests {
 		// flatten inputs
-		reader := bytes.NewBuffer([]byte{})
+		inputBuf := bytes.NewBuffer([]byte{})
 		for _, b := range tt.inputs {
-			reader.Write(b)
+			inputBuf.Write(b)
 		}
+		reader := bufio.NewReader(inputBuf)
 		d := decoder.NewDecoder(reader, binary.BigEndian)
 
 		events, err := d.Decode()

@@ -4,6 +4,7 @@ import "github.com/hmdyt/madago/domain/entconst"
 
 type Event struct {
 	Header EventHeader
+	Hits   []Hit
 }
 
 type EventHeader struct {
@@ -23,3 +24,8 @@ type Version struct {
 	Sub   uint8
 }
 type EncodingClockDepth uint16
+
+type Hit struct {
+	Clock uint16
+	IsHit [128]bool
+}

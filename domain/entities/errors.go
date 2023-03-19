@@ -6,7 +6,7 @@ import (
 )
 
 type InvalidHeaderError struct {
-	Got [4]byte
+	Got []byte
 }
 
 func (e InvalidHeaderError) Error() string {
