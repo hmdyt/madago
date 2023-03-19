@@ -54,6 +54,10 @@ func (d *Decoder) DecodeEvent() error {
 		return err
 	}
 
+	if err := d.ReadVersionAndDepth(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -106,6 +110,24 @@ func (d *Decoder) ReadFlushAdc() error {
 			d.currentEvent.Header.FlushADC[ch][clock] = adcValue
 		}
 	}
+
+	return nil
+}
+func (d *Decoder) ReadVersionAndDepth() error {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Version.Year); err != nil {
+		return err
+	}
+
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Version.Month); err != nil {
+		return err
+	}
+
+	var buf uint16
+	if err := binary.Read(d.reader, d.endian, &buf); err != nil {
+		return err
+	}
+	d.currentEvent.Header.Version.Sub = uint8(buf >> 12)                                             // 上位4bit
+	d.currentEvent.Header.EncodingClockDepth = entities.EncodingClockDepth(buf & 0b0000011111111111) // 下位11bit
 
 	return nil
 }

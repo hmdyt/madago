@@ -12,12 +12,12 @@ import (
 
 func TestDecodeEvent(t *testing.T) {
 	tests := []struct {
-		input     []byte
+		inputs    [][]byte
 		wantEvent []*entities.Event
 	}{
 		{
-			input: append(
-				[]byte{
+			inputs: [][]byte{
+				{
 					0xeb, 0x90, 0x19, 0x64, // header
 					0x00, 0x00, 0x00, 0x0a, // event counter
 					0x00, 0x00, 0x00, 0x0b, // clock counter
@@ -33,8 +33,17 @@ func TestDecodeEvent(t *testing.T) {
 						}
 					}
 					return ret
-				}()...,
-			),
+				}(),
+				func() []byte {
+					ret := make([]byte, 0, 4)
+					versionYear := uint8(23)
+					versionMonth := uint8(3)
+					versionSub := uint8(5) << 4
+					encodingClockDepth := uint8(50)
+					ret = append(ret, versionYear, versionMonth, versionSub, encodingClockDepth)
+					return ret
+				}(),
+			},
 			wantEvent: []*entities.Event{
 				{
 					Header: entities.EventHeader{
@@ -49,6 +58,12 @@ func TestDecodeEvent(t *testing.T) {
 							}
 							return ret
 						}(),
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
 					},
 				},
 			},
@@ -56,7 +71,11 @@ func TestDecodeEvent(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		reader := bytes.NewBuffer(tt.input)
+		// flatten inputs
+		reader := bytes.NewBuffer([]byte{})
+		for _, b := range tt.inputs {
+			reader.Write(b)
+		}
 		d := decoder.NewDecoder(reader, binary.BigEndian)
 
 		events, err := d.Decode()
