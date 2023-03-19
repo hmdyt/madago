@@ -126,7 +126,7 @@ func (d *Decoder) SkipEventHeaderSymbol() error {
 }
 
 func (d *Decoder) ReadEventCounter() error {
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Counter); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Trigger); err != nil {
 		return err
 	}
 

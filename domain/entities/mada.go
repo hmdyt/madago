@@ -8,7 +8,7 @@ type Event struct {
 }
 
 type EventHeader struct {
-	Counter            EventCounter
+	Trigger            TriggerCounter
 	Clock              ClockCounter
 	InputCh2           InputCh2Counter
 	FlushADC           EventFlushAdc
@@ -16,7 +16,7 @@ type EventHeader struct {
 	EncodingClockDepth EncodingClockDepth
 }
 
-type EventCounter uint32
+type TriggerCounter uint32
 type ClockCounter uint32
 type InputCh2Counter uint32
 type EventFlushAdc [4][entconst.Clock]uint16

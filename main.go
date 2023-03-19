@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"encoding/binary"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/hmdyt/madago/decoder"
+	"github.com/hmdyt/madago/encoder/root"
 )
 
 func main() {
@@ -29,5 +29,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(len(events))
+	rootEncoder, err := root.NewEncoder("tree.root")
+	if err != nil {
+		log.Fatalf("NewEncoder : %s", err.Error())
+	}
+
+	if err := rootEncoder.Write(events); err != nil {
+		log.Fatalf("RootEncoder.Write : %s", err.Error())
+	}
+
 }

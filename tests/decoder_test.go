@@ -65,7 +65,7 @@ func TestDecodeEvents(t *testing.T) {
 			wantEvent: []*entities.Event{
 				{
 					Header: entities.EventHeader{
-						Counter: 10,
+						Trigger: 10,
 						Clock:   11,
 						FlushADC: func() [4][1024]uint16 {
 							var ret [4][1024]uint16
