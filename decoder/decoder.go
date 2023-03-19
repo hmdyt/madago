@@ -55,6 +55,8 @@ func (d *Decoder) Decode() ([]*entities.Event, error) {
 			d.clearCurrentEvent()
 		} else if errors.Is(err, io.ErrUnexpectedEOF) {
 			break
+		} else if errors.Is(err, io.EOF) {
+			break
 		} else {
 			log.Fatalf("event read loop end: %#v \n", err)
 		}
@@ -149,30 +151,44 @@ func (d *Decoder) ReadInputCh2Counter() error {
 	return nil
 }
 
-// ReadFlushAdc 4ch * 1024 clockを一気読み
+// ReadFlushAdc 4ch * 1024 clock
 func (d *Decoder) ReadFlushAdc() error {
-	if err := binary.Read(d.reader, d.endian, &d.flushAdcBuf); err != nil {
-		return err
+	var clock_counter [4]int
+	for {
+		ch, err := d.peekFlushAdcHeader()
+		if err != nil {
+			return err
+		} else if ch == nil {
+			return nil
+		} else {
+			var buf uint16
+			if err := binary.Read(d.reader, d.endian, &buf); err != nil {
+				return err
+			}
+			adcValue := buf & 0b0000001111111111 // 下位10bit
+			d.currentEvent.Header.FlushADC[*ch][clock_counter[*ch]] = adcValue
+			clock_counter[*ch]++
+		}
+	}
+}
+
+// peekFlushAdcHeader FADCのheaderをみて, 対応するchannelを返す。対応がない場合はnil
+func (d *Decoder) peekFlushAdcHeader() (*int, error) {
+	buf, err := d.reader.Peek(1)
+	if err != nil {
+		return nil, err
 	}
 
-	// 1 clock 2byte*4 = uint16 * 4
-	for clock := 0; clock < entconst.Clock; clock++ {
-		flushADC4ChBuff := d.flushAdcBuf[4*clock : 4*clock+4]
-		for ch := 0; ch < 4; ch++ {
-			header := flushADC4ChBuff[ch] >> 12                  // 上位4bit
-			adcValue := flushADC4ChBuff[ch] & 0b0000001111111111 // 下位10bit
-			if !entconst.IsAdcHeaderSymbol(ch, header) {
-				return entities.InvalidFlushAdcHeaderError{
-					Got:      header,
-					Expected: entconst.FlushAdcHeaderSymbol()[ch],
-				}
-			}
-			d.currentEvent.Header.FlushADC[ch][clock] = adcValue
+	header := buf[0] >> 4
+	for ch := 0; ch < 4; ch++ {
+		if entconst.IsAdcHeaderSymbol(ch, uint16(header)) {
+			return &ch, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
+
 func (d *Decoder) ReadVersionAndDepth() error {
 	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Version.Year); err != nil {
 		return err
