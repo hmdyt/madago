@@ -82,6 +82,13 @@ func (d *Decoder) DecodeEvent() error {
 		return err
 	}
 
+	// 仕様には書いてなかったが、hitがとても少ない?時などはCounter系の直後にFooterがくる
+	if b, err := d.reader.Peek(4); err != nil {
+		return err
+	} else if entconst.IsEventFooterSymbol(b) {
+		return nil
+	}
+
 	if err := d.ReadFlushAdc(); err != nil {
 		return err
 	}
@@ -110,7 +117,8 @@ func (d *Decoder) DecodeEvent() error {
 			}
 			return nil
 		default:
-			return entities.InvalidHeaderError{Got: peekBytes}
+			log.Printf("%#v", d.currentEvent)
+			return errors.New("error in search hit or footer")
 		}
 	}
 }
@@ -121,7 +129,7 @@ func (d *Decoder) SkipEventHeaderSymbol() error {
 		return err
 	}
 	if !entconst.IsEventHeaderSymbol(b[:]) {
-		return entities.InvalidHeaderError{Got: b[:]}
+		return entities.InvalidHeaderError{Got: b[:], Expected: entconst.EventHeaderSymbol()}
 	}
 
 	return nil
@@ -153,7 +161,7 @@ func (d *Decoder) ReadInputCh2Counter() error {
 
 // ReadFlushAdc 4ch * 1024 clock
 func (d *Decoder) ReadFlushAdc() error {
-	var clock_counter [4]int
+	var clockCounter [4]int
 	for {
 		ch, err := d.peekFlushAdcHeader()
 		if err != nil {
@@ -166,8 +174,8 @@ func (d *Decoder) ReadFlushAdc() error {
 				return err
 			}
 			adcValue := buf & 0b0000001111111111 // 下位10bit
-			d.currentEvent.Header.FlushADC[*ch][clock_counter[*ch]] = adcValue
-			clock_counter[*ch]++
+			d.currentEvent.Header.FlushADC[*ch][clockCounter[*ch]] = adcValue
+			clockCounter[*ch]++
 		}
 	}
 }

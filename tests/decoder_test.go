@@ -153,6 +153,31 @@ func TestDecodeEvents(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "成功; FlushADCとhitなし",
+			inputs: [][]byte{
+				makeTestEventHeader(),
+				makeTestCounters(),
+				makeTestVersionAndDepth(),
+				makeTestEventFooter(),
+			},
+			wantEvent: []*entities.Event{
+				{
+					Header: entities.EventHeader{
+						Trigger:  10,
+						Clock:    11,
+						InputCh2: 12,
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
+					},
+					Hits: []entities.Hit{},
+				},
+			},
+		},
 	}
 
 	for i, tt := range tests {
