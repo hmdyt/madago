@@ -86,6 +86,9 @@ func (d *Decoder) DecodeEvent() error {
 	if b, err := d.reader.Peek(4); err != nil {
 		return err
 	} else if entconst.IsEventFooterSymbol(b) {
+		if _, err := d.reader.Discard(4); err != nil {
+			return err
+		}
 		return nil
 	}
 
