@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/hmdyt/madago/decoder"
 	"github.com/hmdyt/madago/encoder/root"
-	"github.com/schollz/progressbar/v3"
 )
 
 func main() {
@@ -27,18 +27,15 @@ func main() {
 	}
 	defer file.Close()
 
-	// progress bar
-	bar := progressbar.DefaultBytes(fileInfo.Size(), "Decoding")
-	fileReader := progressbar.NewReader(file, bar)
-
-	// decoder
-	reader := bufio.NewReader(&fileReader)
+	// decode
+	bar := pb.Full.Start64(fileInfo.Size())
+	reader := bufio.NewReader(bar.NewProxyReader(file))
 	d := decoder.NewDecoder(reader, binary.BigEndian)
-
 	events, err := d.Decode()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	bar.Finish()
 
 	rootEncoder, err := root.NewEncoder("tree.root")
 	if err != nil {
