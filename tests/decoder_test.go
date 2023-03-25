@@ -52,8 +52,15 @@ func TestDecodeEvents(t *testing.T) {
 		wantEvent []*entities.Event
 	}{
 		{
-			name: "成功; FlushADCあり, hit3clock",
+			name: "成功; FlushADCあり, hit3clock (2events)",
 			inputs: [][]byte{
+				{0x00, 0x00, 0x00, 0x00}, // trash data
+				makeTestEventHeader(),
+				makeTestCounters(),
+				makeTestFADC(),
+				makeTestVersionAndDepth(),
+				makeTestHit(),
+				makeTestEventFooter(),
 				makeTestEventHeader(),
 				makeTestCounters(),
 				makeTestFADC(),
@@ -85,11 +92,40 @@ func TestDecodeEvents(t *testing.T) {
 					},
 					Hits: wantHits,
 				},
+				{
+					Header: entities.EventHeader{
+						Trigger:  10,
+						Clock:    11,
+						InputCh2: 12,
+						FlushADC: func() [4][1024]uint16 {
+							var ret [4][1024]uint16
+							for clock := 0; clock < 1024; clock++ {
+								for ch := 0; ch < 4; ch++ {
+									ret[ch][clock] = uint16(ch + 13)
+								}
+							}
+							return ret
+						}(),
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
+					},
+					Hits: wantHits,
+				},
 			},
 		},
 		{
-			name: "成功; FlushADC ch2欠け, hit3clock",
+			name: "成功; FlushADC ch2欠け, hit3clock (2events)",
 			inputs: [][]byte{
+				makeTestEventHeader(),
+				makeTestCounters(),
+				makeTestLuckFADC(),
+				makeTestVersionAndDepth(),
+				makeTestHit(),
+				makeTestEventFooter(),
 				makeTestEventHeader(),
 				makeTestCounters(),
 				makeTestLuckFADC(),
@@ -125,11 +161,43 @@ func TestDecodeEvents(t *testing.T) {
 					},
 					Hits: wantHits,
 				},
+				{
+					Header: entities.EventHeader{
+						Trigger:  10,
+						Clock:    11,
+						InputCh2: 12,
+						FlushADC: func() [4][1024]uint16 {
+							var ret [4][1024]uint16
+							for clock := 0; clock < 1024; clock++ {
+								for ch := 0; ch < 4; ch++ {
+									if ch == 2 {
+										ret[ch][clock] = 0
+									} else {
+										ret[ch][clock] = uint16(ch + 13)
+									}
+								}
+							}
+							return ret
+						}(),
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
+					},
+					Hits: wantHits,
+				},
 			},
 		},
 		{
-			name: "成功; FlushADC 全chなし, hit3clock",
+			name: "成功; FlushADC 全chなし, hit3clock (2events)",
 			inputs: [][]byte{
+				makeTestEventHeader(),
+				makeTestCounters(),
+				makeTestVersionAndDepth(),
+				makeTestHit(),
+				makeTestEventFooter(),
 				makeTestEventHeader(),
 				makeTestCounters(),
 				makeTestVersionAndDepth(),
@@ -151,17 +219,49 @@ func TestDecodeEvents(t *testing.T) {
 					},
 					Hits: wantHits,
 				},
+				{
+					Header: entities.EventHeader{
+						Trigger:  10,
+						Clock:    11,
+						InputCh2: 12,
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
+					},
+					Hits: wantHits,
+				},
 			},
 		},
 		{
-			name: "成功; FlushADCとhitなし",
+			name: "成功; FlushADCとhitなし (2events)",
 			inputs: [][]byte{
+				makeTestEventHeader(),
+				makeTestCounters(),
+				makeTestVersionAndDepth(),
+				makeTestEventFooter(),
 				makeTestEventHeader(),
 				makeTestCounters(),
 				makeTestVersionAndDepth(),
 				makeTestEventFooter(),
 			},
 			wantEvent: []*entities.Event{
+				{
+					Header: entities.EventHeader{
+						Trigger:  10,
+						Clock:    11,
+						InputCh2: 12,
+						Version: entities.Version{
+							Year:  23,
+							Month: 3,
+							Sub:   5,
+						},
+						EncodingClockDepth: entities.EncodingClockDepth(50),
+					},
+					Hits: []entities.Hit{},
+				},
 				{
 					Header: entities.EventHeader{
 						Trigger:  10,
