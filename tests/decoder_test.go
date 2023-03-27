@@ -12,7 +12,7 @@ import (
 )
 
 func TestDecodeEvents(t *testing.T) {
-	wantHits := []entities.Hit{
+	wantHits := []entities.MadaHit{
 		{
 			Clock: 50,
 			IsHit: func() [128]bool {
@@ -49,7 +49,7 @@ func TestDecodeEvents(t *testing.T) {
 	tests := []struct {
 		name      string
 		inputs    [][]byte
-		wantEvent []*entities.Event
+		wantEvent []*entities.MadaEvent
 	}{
 		{
 			name: "成功; FlushADCあり, hit3clock (2events)",
@@ -68,52 +68,48 @@ func TestDecodeEvents(t *testing.T) {
 				makeTestHit(),
 				makeTestEventFooter(),
 			},
-			wantEvent: []*entities.Event{
+			wantEvent: []*entities.MadaEvent{
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						FlushADC: func() [4][1024]uint16 {
-							var ret [4][1024]uint16
-							for clock := 0; clock < 1024; clock++ {
-								for ch := 0; ch < 4; ch++ {
-									ret[ch][clock] = uint16(ch + 13)
-								}
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					FlushADC: func() [4][1024]uint16 {
+						var ret [4][1024]uint16
+						for clock := 0; clock < 1024; clock++ {
+							for ch := 0; ch < 4; ch++ {
+								ret[ch][clock] = uint16(ch + 13)
 							}
-							return ret
-						}(),
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+						}
+						return ret
+					}(),
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						FlushADC: func() [4][1024]uint16 {
-							var ret [4][1024]uint16
-							for clock := 0; clock < 1024; clock++ {
-								for ch := 0; ch < 4; ch++ {
-									ret[ch][clock] = uint16(ch + 13)
-								}
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					FlushADC: func() [4][1024]uint16 {
+						var ret [4][1024]uint16
+						for clock := 0; clock < 1024; clock++ {
+							for ch := 0; ch < 4; ch++ {
+								ret[ch][clock] = uint16(ch + 13)
 							}
-							return ret
-						}(),
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+						}
+						return ret
+					}(),
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 			},
 		},
@@ -133,60 +129,56 @@ func TestDecodeEvents(t *testing.T) {
 				makeTestHit(),
 				makeTestEventFooter(),
 			},
-			wantEvent: []*entities.Event{
+			wantEvent: []*entities.MadaEvent{
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						FlushADC: func() [4][1024]uint16 {
-							var ret [4][1024]uint16
-							for clock := 0; clock < 1024; clock++ {
-								for ch := 0; ch < 4; ch++ {
-									if ch == 2 {
-										ret[ch][clock] = 0
-									} else {
-										ret[ch][clock] = uint16(ch + 13)
-									}
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					FlushADC: func() [4][1024]uint16 {
+						var ret [4][1024]uint16
+						for clock := 0; clock < 1024; clock++ {
+							for ch := 0; ch < 4; ch++ {
+								if ch == 2 {
+									ret[ch][clock] = 0
+								} else {
+									ret[ch][clock] = uint16(ch + 13)
 								}
 							}
-							return ret
-						}(),
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+						}
+						return ret
+					}(),
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						FlushADC: func() [4][1024]uint16 {
-							var ret [4][1024]uint16
-							for clock := 0; clock < 1024; clock++ {
-								for ch := 0; ch < 4; ch++ {
-									if ch == 2 {
-										ret[ch][clock] = 0
-									} else {
-										ret[ch][clock] = uint16(ch + 13)
-									}
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					FlushADC: func() [4][1024]uint16 {
+						var ret [4][1024]uint16
+						for clock := 0; clock < 1024; clock++ {
+							for ch := 0; ch < 4; ch++ {
+								if ch == 2 {
+									ret[ch][clock] = 0
+								} else {
+									ret[ch][clock] = uint16(ch + 13)
 								}
 							}
-							return ret
-						}(),
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+						}
+						return ret
+					}(),
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 			},
 		},
@@ -204,34 +196,30 @@ func TestDecodeEvents(t *testing.T) {
 				makeTestHit(),
 				makeTestEventFooter(),
 			},
-			wantEvent: []*entities.Event{
+			wantEvent: []*entities.MadaEvent{
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: wantHits,
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               wantHits,
 				},
 			},
 		},
@@ -247,34 +235,30 @@ func TestDecodeEvents(t *testing.T) {
 				makeTestVersionAndDepth(),
 				makeTestEventFooter(),
 			},
-			wantEvent: []*entities.Event{
+			wantEvent: []*entities.MadaEvent{
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: []entities.Hit{},
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               []entities.MadaHit{},
 				},
 				{
-					Header: entities.EventHeader{
-						Trigger:  10,
-						Clock:    11,
-						InputCh2: 12,
-						Version: entities.Version{
-							Year:  23,
-							Month: 3,
-							Sub:   5,
-						},
-						EncodingClockDepth: entities.EncodingClockDepth(50),
+					Trigger:  10,
+					Clock:    11,
+					InputCh2: 12,
+					Version: entities.Version{
+						Year:  23,
+						Month: 3,
+						Sub:   5,
 					},
-					Hits: []entities.Hit{},
+					EncodingClockDepth: entities.EncodingClockDepth(50),
+					Hits:               []entities.MadaHit{},
 				},
 			},
 		},
