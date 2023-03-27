@@ -4,6 +4,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/cheggaaa/pb/v3"
 	"go-hep.org/x/hep/groot"
 	"go-hep.org/x/hep/groot/rdict"
 	"go-hep.org/x/hep/groot/rtree"
@@ -13,7 +14,8 @@ import (
 )
 
 type Encoder struct {
-	OutPutPath string
+	file *groot.File
+	pb   *pb.ProgressBar
 }
 
 type Event struct {
@@ -36,26 +38,19 @@ func eventFromEntity(event *Event, ent *entities.Event) {
 	}
 }
 
-func NewEncoder(outputPath string) (Encoder, error) {
+func NewEncoder(f *groot.File, progressBar *pb.ProgressBar) (Encoder, error) {
 	rdict.StreamerInfos.Add(rdict.StreamerOf(
 		rdict.StreamerInfos,
 		reflect.TypeOf(Event{}),
 	))
 
-	return Encoder{OutPutPath: outputPath}, nil
+	return Encoder{file: f, pb: progressBar}, nil
 }
 
 func (r *Encoder) Write(events []*entities.Event) error {
-	// file open
-	f, err := groot.Create(r.OutPutPath)
-	if err != nil {
-		log.Printf("could not create ROOT file: %+v", err)
-		return err
-	}
-
 	// make tree
 	var eventBuf Event
-	tree, err := rtree.NewWriter(f, "tree", rtree.WriteVarsFromStruct(&eventBuf))
+	tree, err := rtree.NewWriter(r.file, "tree", rtree.WriteVarsFromStruct(&eventBuf))
 	if err != nil {
 		log.Printf("could not create tree writer: %+v", err)
 		return err
@@ -68,12 +63,10 @@ func (r *Encoder) Write(events []*entities.Event) error {
 			log.Printf("could not write event %d: %+v", i, err)
 			return err
 		}
+		r.pb.Increment()
 	}
 
 	if err := tree.Close(); err != nil {
-		return err
-	}
-	if err := f.Close(); err != nil {
 		return err
 	}
 	return nil
