@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cheggaaa/pb/v3"
+	"github.com/hmdyt/madago/bar"
 	"github.com/hmdyt/madago/decoder"
 	"github.com/hmdyt/madago/encoder/root"
 	"go-hep.org/x/hep/groot"
@@ -33,7 +33,7 @@ func main() {
 	}()
 
 	// decode
-	decoderProgressBar := pb.Full.Start64(fileInfo.Size())
+	decoderProgressBar := bar.DecoderProgressBar(fileInfo.Size())
 	reader := bufio.NewReader(decoderProgressBar.NewProxyReader(file))
 	d := decoder.NewDecoder(reader, binary.BigEndian)
 	events, err := d.Decode()
@@ -54,7 +54,7 @@ func main() {
 	}()
 
 	// encode
-	encoderProgressBar := pb.Full.Start(len(events))
+	encoderProgressBar := bar.EncoderProgressBar(len(events))
 	rootEncoder, err := root.NewEncoder(f, encoderProgressBar)
 	if err != nil {
 		log.Fatalf("NewEncoder : %s", err.Error())
