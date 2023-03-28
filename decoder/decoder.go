@@ -16,8 +16,8 @@ type Decoder struct {
 	reader       *bufio.Reader
 	endian       binary.ByteOrder
 	flushAdcBuf  []uint16
-	currentEvent *entities.Event
-	events       []*entities.Event
+	currentEvent *entities.MadaEvent
+	events       []*entities.MadaEvent
 }
 
 func NewDecoder(reader *bufio.Reader, endian binary.ByteOrder) *Decoder {
@@ -25,25 +25,25 @@ func NewDecoder(reader *bufio.Reader, endian binary.ByteOrder) *Decoder {
 		reader:       reader,
 		endian:       endian,
 		flushAdcBuf:  make([]uint16, 4*entconst.Clock),
-		currentEvent: &entities.Event{Hits: make([]entities.Hit, 0, entconst.Clock)},
-		events:       make([]*entities.Event, 0, 1000),
+		currentEvent: &entities.MadaEvent{Hits: make([]entities.MadaHit, 0, entconst.Clock)},
+		events:       make([]*entities.MadaEvent, 0, 1000),
 	}
 }
 
 // Decode entrypoint
-func (d *Decoder) Decode() ([]*entities.Event, error) {
+func (d *Decoder) Decode() ([]*entities.MadaEvent, error) {
 	// headerまで読み飛ばす
 	for i := 0; ; i++ {
 		b, err := d.reader.Peek(4)
 		if err != nil {
-			return []*entities.Event{}, err
+			return []*entities.MadaEvent{}, err
 		}
 
 		if entconst.IsEventHeaderSymbol(b) {
 			break
 		} else {
 			if _, err := d.reader.Discard(1); err != nil {
-				return []*entities.Event{}, err
+				return []*entities.MadaEvent{}, err
 			}
 		}
 	}
@@ -139,7 +139,7 @@ func (d *Decoder) SkipEventHeaderSymbol() error {
 }
 
 func (d *Decoder) ReadEventCounter() error {
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Trigger); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Trigger); err != nil {
 		return err
 	}
 
@@ -147,7 +147,7 @@ func (d *Decoder) ReadEventCounter() error {
 }
 
 func (d *Decoder) ReadClockCounter() error {
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Clock); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Clock); err != nil {
 		return err
 	}
 
@@ -155,7 +155,7 @@ func (d *Decoder) ReadClockCounter() error {
 }
 
 func (d *Decoder) ReadInputCh2Counter() error {
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.InputCh2); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.InputCh2); err != nil {
 		return err
 	}
 
@@ -177,7 +177,7 @@ func (d *Decoder) ReadFlushAdc() error {
 				return err
 			}
 			adcValue := buf & 0b0000001111111111 // 下位10bit
-			d.currentEvent.Header.FlushADC[*ch][clockCounter[*ch]] = adcValue
+			d.currentEvent.FlushADC[*ch][clockCounter[*ch]] = adcValue
 			clockCounter[*ch]++
 		}
 	}
@@ -201,11 +201,11 @@ func (d *Decoder) peekFlushAdcHeader() (*int, error) {
 }
 
 func (d *Decoder) ReadVersionAndDepth() error {
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Version.Year); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Version.Year); err != nil {
 		return err
 	}
 
-	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Header.Version.Month); err != nil {
+	if err := binary.Read(d.reader, d.endian, &d.currentEvent.Version.Month); err != nil {
 		return err
 	}
 
@@ -213,14 +213,14 @@ func (d *Decoder) ReadVersionAndDepth() error {
 	if err := binary.Read(d.reader, d.endian, &buf); err != nil {
 		return err
 	}
-	d.currentEvent.Header.Version.Sub = uint8(buf >> 12)                                             // 上位4bit
-	d.currentEvent.Header.EncodingClockDepth = entities.EncodingClockDepth(buf & 0b0000011111111111) // 下位11bit
+	d.currentEvent.Version.Sub = uint8(buf >> 12)                                             // 上位4bit
+	d.currentEvent.EncodingClockDepth = entities.EncodingClockDepth(buf & 0b0000011111111111) // 下位11bit
 
 	return nil
 }
 
 func (d *Decoder) ReadHit() error {
-	var hit entities.Hit
+	var hit entities.MadaHit
 
 	// clock
 	if err := binary.Read(d.reader, d.endian, &hit.Clock); err != nil {
@@ -269,5 +269,5 @@ func (d *Decoder) ReadHit() error {
 }
 
 func (d *Decoder) clearCurrentEvent() {
-	d.currentEvent = &entities.Event{Hits: make([]entities.Hit, 0, entconst.Clock)}
+	d.currentEvent = &entities.MadaEvent{Hits: make([]entities.MadaHit, 0, entconst.Clock)}
 }

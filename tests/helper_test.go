@@ -1,5 +1,7 @@
 package tests
 
+import "github.com/hmdyt/madago/domain/entities"
+
 func makeTestEventHeader() []byte {
 	return []byte{0xeb, 0x90, 0x19, 0x64}
 }
@@ -70,4 +72,55 @@ func makeTestHit() []byte {
 
 func makeTestEventFooter() []byte {
 	return []byte{0x75, 0x50, 0x49, 0x43}
+}
+
+// triggerIDとidを指定してMadaEventを作成する
+// metaデータはidの整数値をそのまま使う
+// hitはclock=idの時だけ全てのchがtrue
+func makeTestMadaEvent(triggerID entities.TriggerCounter, id uint) *entities.MadaEvent {
+	if id > 255 {
+		panic("id is too large")
+	}
+
+	makeFlushADCOneChannel := func() [1024]uint16 {
+		var ret [1024]uint16
+		for i := 0; i < 1024; i++ {
+			ret[i] = uint16(id)
+		}
+		return ret
+	}
+
+	makeHit := func() []entities.MadaHit {
+		return []entities.MadaHit{
+			{
+				Clock: uint16(id),
+				IsHit: func() [128]bool {
+					var ret [128]bool
+					for i := 0; i < 128; i++ {
+						ret[i] = true
+					}
+					return ret
+				}(),
+			},
+		}
+	}
+
+	return &entities.MadaEvent{
+		Trigger:  triggerID,
+		Clock:    entities.ClockCounter(id),
+		InputCh2: entities.InputCh2Counter(id),
+		Version: entities.Version{
+			Year:  uint8(id),
+			Month: uint8(id),
+			Sub:   uint8(id),
+		},
+		EncodingClockDepth: entities.EncodingClockDepth(id),
+		FlushADC: entities.FlushAdc{
+			makeFlushADCOneChannel(),
+			makeFlushADCOneChannel(),
+			makeFlushADCOneChannel(),
+			makeFlushADCOneChannel(),
+		},
+		Hits: makeHit(),
+	}
 }

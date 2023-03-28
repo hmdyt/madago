@@ -26,3 +26,11 @@ type InvalidFlushAdcHeaderError struct {
 func (e InvalidFlushAdcHeaderError) Error() string {
 	return fmt.Sprintf("invalid flush adc header error got=%d, expected=%d", e.Got, e.Expected)
 }
+
+type InvalidBoardIDError struct {
+	Got string
+}
+
+func (e InvalidBoardIDError) Error() string {
+	return fmt.Sprintf("invalid board id error got=%s", e.Got)
+}
