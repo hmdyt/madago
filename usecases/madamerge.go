@@ -44,9 +44,9 @@ func MergeMadaEvents(cmd MadaMergeCmd) []*entities.RawEvent {
 	}
 
 	// map to slice
-	rawEvents := make([]*entities.RawEvent, len(rawEventMap))
-	for i, rawEvent := range rawEventMap {
-		rawEvents[i] = rawEvent
+	rawEvents := make([]*entities.RawEvent, 0, len(rawEventMap)*2)
+	for _, rawEvent := range rawEventMap {
+		rawEvents = append(rawEvents, rawEvent)
 	}
 
 	// sort by trigger id
